@@ -154,7 +154,7 @@ int main(void){
 
 		GetUserNameA(userName, &userNameSize);
 
-		sprintf_s(szbuffer, strcat(strcat(strcat(strcat(strcat(strcat(strcat(localhost, ","), fileName), ","), transferDirection), ","), userName), "\r\n"));
+		sprintf_s(szbuffer, strcat(strcat(strcat(strcat(strcat(strcat(strcat(localhost, ","), fileName), ","), transferDirection), ","), userName), ""));
 
 		ibytessent = 0;
 		ibufferlen = strlen(szbuffer);
@@ -162,40 +162,34 @@ int main(void){
 		if (ibytessent == SOCKET_ERROR)
 			throw "Send failed\n";
 
-		char* fr_name = fileName;
-		char buffer[512];
-		FILE *fr = fopen(fr_name, "a");
-		if (fr == NULL)
-			cout << "File " << fr_name << "cannot be opened" << endl;
+		const int BUFFER_LENGTH = 512;
+		char* fname = fileName;
+		char buffer[BUFFER_LENGTH];
+		FILE *file = fopen("textf.txt", "a");
+
+		if (file == NULL)
+			cout << "File " << fname << "cannot be opened" << endl;
 		else
 		{
-			int fr_block_sz = 0;
-			while ((fr_block_sz = recv(s, buffer, 512, 0)) > 0)
+			int fileBlockSize = 0;
+			while ((fileBlockSize = recv(s, buffer, BUFFER_LENGTH, 0)) > 0)
 			{
-				int write_sz = fwrite(buffer, sizeof(char), fr_block_sz, fr);
-				if (write_sz < fr_block_sz)
+				int write_sz = fwrite(buffer, sizeof(char), fileBlockSize, file);
+				if (write_sz < fileBlockSize)
 				{
 					cout << "Failed to retrieve file from server" << endl;
 				}
-				if (fr_block_sz == 0 || fr_block_sz != 512)
+				if (fileBlockSize == 0 || fileBlockSize != BUFFER_LENGTH)
 				{
 					break;
 				}
 			}
-			if (fr_block_sz < 0)
+			if (fileBlockSize < 0)
 			{
-				if (errno == EAGAIN)
-				{
-					cout << "recv() timed out." << endl;
-				}
-				else
-				{
-					fprintf(stderr, "recv() failed due to errno = %d\n", errno);
-					exit(1);
-				}
+				cout << "Error retrieving file from sever" << endl;
 			}
 			cout << "File was received" << endl;
-			fclose(fr);
+			fclose(file);
 		}
 	}
 

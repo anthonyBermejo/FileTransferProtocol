@@ -176,12 +176,15 @@ int main(void){
 			strcpy(transferDirection, tempBuffer.substr(0, pos).c_str());
 
 			tempBuffer = tempBuffer.substr(pos + 1);
-			strcpy(userName, tempBuffer.c_str());
+			pos = tempBuffer.find("\\");
+			strcpy(userName, tempBuffer.substr(0,pos).c_str());
 
 
 			//Print receipt of successful message. 
 			cout << "User \"" << userName << "\" requested file " << fileName << " to be sent." << endl
 				<< "Sending file to " << clientName << endl;
+
+			const int BUFFER_LENGTH = 512;
 
 			// GET - Send file to client
 			if (strcmp(transferDirection, "get") == 0) {
@@ -189,13 +192,13 @@ int main(void){
 				if (file == NULL) {
 					cout << "File not found" << endl;
 				}
-				char buffer[512];
+				char buffer[BUFFER_LENGTH];
 
-				int file_block_size;
+				int fileBlockSize = 0;
 
-				while ((file_block_size = fread(buffer, sizeof(char), 512, file)) > 0)
+				while ((fileBlockSize = fread(buffer, sizeof(char), BUFFER_LENGTH, file)) > 0)
 				{
-					if (send(s1, buffer, file_block_size, 0) < 0)
+					if (send(s1, buffer, fileBlockSize, 0) < 0)
 						cout << "Failed to send file" << endl;
 				}
 
@@ -203,40 +206,34 @@ int main(void){
 			}
 			// PUT - Receive file from client
 			else if (strcmp(transferDirection, "put") == 0) {
-				char* fr_name = fileName;
-				char buffer[512];
-				FILE *fr = fopen(fr_name, "a");
-				if (fr == NULL)
-					cout << "File " << fr_name << "cannot be opened" << endl;
+
+				char* fname = fileName;
+				char buffer[BUFFER_LENGTH];
+				FILE *file = fopen(fname, "a");
+
+				if (file == NULL)
+					cout << "File " << fname << "cannot be opened" << endl;
 				else
 				{
-					int fr_block_sz = 0;
-					while ((fr_block_sz = recv(s, buffer, 512, 0)) > 0)
+					int fileBlockSize = 0;
+					while ((fileBlockSize = recv(s, buffer, BUFFER_LENGTH, 0)) > 0)
 					{
-						int write_sz = fwrite(buffer, sizeof(char), fr_block_sz, fr);
-						if (write_sz < fr_block_sz)
+						int write_sz = fwrite(buffer, sizeof(char), fileBlockSize, file);
+						if (write_sz < fileBlockSize)
 						{
 							cout << "Failed to retrieve file from client" << endl;
 						}
-						if (fr_block_sz == 0 || fr_block_sz != 512)
+						if (fileBlockSize == 0 || fileBlockSize != BUFFER_LENGTH)
 						{
 							break;
 						}
 					}
-					if (fr_block_sz < 0)
+					if (fileBlockSize < 0)
 					{
-						if (errno == EAGAIN)
-						{
-							cout << "recv() timed out." << endl;
-						}
-						else
-						{
-							fprintf(stderr, "recv() failed due to errno = %d\n", errno);
-							exit(1);
-						}
+						cout << "Error retrieving file from client" << endl;
 					}
 					cout << "File was received" << endl;
-					fclose(fr);
+					fclose(file);
 				}
 			}
 			// LIST - List files available for transfer
