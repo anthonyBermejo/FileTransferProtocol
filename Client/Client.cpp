@@ -173,7 +173,7 @@ int main(void){
 			if (strcmp(transferDirection, "get") == 0) {
 				char* fname = fileName;
 				char buffer[BUFFER_LENGTH];
-				FILE *file = fopen("textf.txt", "a");
+				FILE *file = fopen(fileName, "a");
 
 				if (file == NULL)
 					cout << "File " << fname << "cannot be opened" << endl << endl;
@@ -222,19 +222,21 @@ int main(void){
 			// LIST - List files available for transfer
 			else if (strcmp(transferDirection, "list") == 0) {
 
+				char buffer[256];
 
 				//Fill in szbuffer from accepted request.
-				if ((ibytesrecv = recv(s, szbuffer, 128, 0)) == SOCKET_ERROR)
+				if ((ibytesrecv = recv(s, buffer, 256, 0)) == SOCKET_ERROR)
 					throw "Receive error in server program\n";
 
 				//Interpret request from client
-				string tempBuffer(szbuffer);
+				string tempBuffer(buffer);
 				size_t pos;
+				pos = tempBuffer.find(",");
 
 				while (pos != -1) {
-					pos = tempBuffer.find(",");
 					cout << tempBuffer.substr(0, pos).c_str() << endl;
 					tempBuffer = tempBuffer.substr(pos + 1);
+					pos = tempBuffer.find(",");
 				}
 			}
 			else

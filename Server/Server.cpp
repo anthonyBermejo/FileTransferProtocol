@@ -215,7 +215,7 @@ int main(void){
 
 				char* fname = fileName;
 				char buffer[BUFFER_LENGTH];
-				FILE *file = fopen("textf.txt", "a");
+				FILE *file = fopen(fileName, "a");
 
 				if (file == NULL)
 					cout << "File " << fname << "cannot be opened" << endl << endl;
@@ -247,7 +247,6 @@ int main(void){
 			// LIST - List files available for transfer
 			else if (strcmp(transferDirection, "list") == 0) {
 
-				char szbuffer[128];
 				system("dir /b >> list.txt");
 
 				ifstream file("list.txt");
@@ -267,11 +266,12 @@ int main(void){
 				sprintf_s(szbuffer, directoryString.c_str());
 
 				ibytessent = 0;
+				ibufferlen = strlen(szbuffer);
 				ibytessent = send(s1, szbuffer, ibufferlen, 0);
 				if (ibytessent == SOCKET_ERROR)
 					throw "Failed to send directory listing\n";
 
-				system("rm -r list.txt");
+				//system("rm list.txt");
 			}
 			else {
 				cout << "Invalid transfer direction" << endl << endl;
