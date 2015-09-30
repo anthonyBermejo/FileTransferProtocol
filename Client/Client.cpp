@@ -125,14 +125,6 @@ int main(void){
 			if (strcmp(server, "quit") == 0)
 				exit(1);
 
-			cout << "Type direction of transfer: " << flush;
-			cin >> transferDirection;
-
-			cout << "Type name of file to be transferred: " << flush;
-			cin >> fileName;
-
-			cout << endl << "Send request to " << server << ", waiting..." << endl;
-
 			if ((hp = gethostbyname(localhost)) == NULL)
 				throw "gethostbyname failed\n";
 
@@ -159,7 +151,15 @@ int main(void){
 
 			GetUserNameA(userName, &userNameSize);
 
-			sprintf_s(szbuffer, strcat(strcat(strcat(strcat(strcat(strcat(strcat(server, ","), fileName), ","), transferDirection), ","), userName), " "));
+			cout << "Type direction of transfer: " << flush;
+			cin >> transferDirection;
+
+			cout << "Type name of file to be transferred: " << flush;
+			cin >> fileName;
+
+			sprintf_s(szbuffer, strcat(strcat(strcat(strcat(strcat(strcat(strcat(server, ","), fileName), ","), transferDirection), ","), userName), "\r\n"));
+
+			cout << szbuffer;
 
 			ibytessent = 0;
 			ibufferlen = strlen(szbuffer);
@@ -179,6 +179,8 @@ int main(void){
 					cout << "File " << fname << "cannot be opened" << endl << endl;
 				else
 				{
+					cout << "Receiving " << fname << "from server" << endl << endl;
+
 					int fileBlockSize = 0;
 					while ((fileBlockSize = recv(s, buffer, BUFFER_LENGTH, 0)) > 0)
 					{
@@ -206,6 +208,9 @@ int main(void){
 				FILE * file = fopen(fileName, "r");
 				if (file == NULL) {
 					cout << "File not found" << endl << endl;
+				}
+				else {
+					cout << "Sending file " << fileName << "to server" << endl << endl;
 				}
 				char buffer[BUFFER_LENGTH];
 
@@ -247,7 +252,6 @@ int main(void){
 	//Display any needed error response.
 
 	catch (char *str) { cerr << str << ":" << dec << WSAGetLastError() << endl; }
-
 
 	//close the client socket
 	closesocket(s);

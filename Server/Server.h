@@ -2,7 +2,6 @@
 
 class TcpThread :public Thread
 {
-
 	int cs;
 public:
 	TcpThread(int clientsocket) :cs(clientsocket)

@@ -106,7 +106,7 @@ int main(void){
 
 		gethostname(localhost, 20);
 		cout << "ftpd_tcp starting at host: [" << localhost << "]" << endl
-			<< "waiting to be contacted for trasnferring files..." << endl;
+			<< "waiting to be contacted for transferring files..." << endl;
 
 		if ((hp = gethostbyname(localhost)) == NULL) {
 			cout << "gethostbyname() cannot get local host info?"
@@ -138,16 +138,8 @@ int main(void){
 
 		FD_ZERO(&readfds);
 
-		char clientName[64];
-		char fileName[64];
-		char transferDirection[8];
-		char userName[64];
-		string temp;
-
 		while (1)
-
 		{
-
 			FD_SET(s, &readfds);  //always check the listener
 
 			if (!(outfds = select(infds, &readfds, NULL, NULL, tp))) {}
@@ -164,134 +156,13 @@ int main(void){
 			TcpThread * t = new TcpThread(s1);
 			t->start();
 
-			//Fill in szbuffer from accepted request.
-			if ((ibytesrecv = recv(s1, szbuffer, 128, 0)) == SOCKET_ERROR)
-				throw "Receive error in server program\n";
-
-			//Interpret request from client
-			string tempBuffer(szbuffer);
-			size_t pos = tempBuffer.find(",");
-			strcpy(clientName, tempBuffer.substr(0, pos).c_str());
-
-			tempBuffer = tempBuffer.substr(pos + 1);
-			pos = tempBuffer.find(",");
-			strcpy(fileName, tempBuffer.substr(0, pos).c_str());
-
-			tempBuffer = tempBuffer.substr(pos + 1);
-			pos = tempBuffer.find(",");
-			strcpy(transferDirection, tempBuffer.substr(0, pos).c_str());
-
-			tempBuffer = tempBuffer.substr(pos + 1);
-			pos = tempBuffer.find("\\");
-			strcpy(userName, tempBuffer.substr(0,pos).c_str());
-
-			// Length of buffer
-			const int BUFFER_LENGTH = 512;
-
-			// GET - Send file to client
-			if (strcmp(transferDirection, "get") == 0) {
-
-				cout << "User \"" << userName << "\" requested file " << fileName << " to be sent." << endl
-					<< "Sending file to " << clientName << endl << endl;
-
-				FILE * file = fopen(fileName, "r");
-				if (file == NULL) {
-					cout << "File not found" << endl << endl;
-				}
-				char buffer[BUFFER_LENGTH];
-
-				int fileBlockSize = 0;
-
-				while ((fileBlockSize = fread(buffer, sizeof(char), BUFFER_LENGTH, file)) > 0)
-				{
-					if (send(s1, buffer, fileBlockSize, 0) < 0)
-						cout << "Failed to send file" << endl << endl;
-				}
-
-				cout << "File sent to client" << endl << endl;
-			}
-			// PUT - Receive file from client
-			else if (strcmp(transferDirection, "put") == 0) {
-
-				cout << "User \"" << userName << "\" requested file " << fileName << " to be received." << endl
-					<< "Receiving file from " << clientName << endl << endl;
-
-				char* fname = fileName;
-				char buffer[BUFFER_LENGTH];
-				FILE *file = fopen(fileName, "a");
-
-				if (file == NULL)
-					cout << "File " << fname << "cannot be opened" << endl << endl;
-				else
-				{
-					int fileBlockSize = 0;
-					while ((fileBlockSize = recv(s1, buffer, BUFFER_LENGTH, 0)) > 0)
-					{
-						int writeSize = fwrite(buffer, sizeof(char), fileBlockSize, file);
-						if (writeSize < fileBlockSize)
-						{
-							cout << "Failed to retrieve file from client" << endl << endl;
-						}
-						if (fileBlockSize == 0 || fileBlockSize != BUFFER_LENGTH)
-						{
-							break;
-						}
-					}
-					if (fileBlockSize < 0)
-					{
-						cout << "Error retrieving file from client" << endl << endl;
-					}
-					else
-						cout << "File was received" << endl << endl;
-
-					fclose(file);
-				}
-			}
-			// LIST - List files available for transfer
-			else if (strcmp(transferDirection, "list") == 0) {
-
-				system("dir /b >> list.txt");
-
-				ifstream file("list.txt");
-				string line;
-				string directoryString;
-
-				if (!file.eof()) {
-					getline(file, line);
-					directoryString = line;
-
-					while (!file.eof()) {
-						getline(file, line);
-						directoryString = directoryString + "," + line;
-					}
-				}
-
-				sprintf_s(szbuffer, directoryString.c_str());
-
-				ibytessent = 0;
-				ibufferlen = strlen(szbuffer);
-				ibytessent = send(s1, szbuffer, ibufferlen, 0);
-				if (ibytessent == SOCKET_ERROR)
-					throw "Failed to send directory listing\n";
-
-				file.close();
-
-				system("del list.txt");
-			}
-			else {
-				cout << "Invalid transfer direction" << endl << endl;
-			}
-
-		}//wait loop
+		}//while loop
 
 	} //try loop
 
 	//Display needed error message.
 
 	catch (char* str) { cerr << str << WSAGetLastError() << endl; }
-
-	//close Client socket
-	closesocket(s1);
 
 	//close server socket
 	closesocket(s);
@@ -303,39 +174,134 @@ int main(void){
 
 void TcpThread::run() //cs: Server socket
 {
-	Resp resp;//response
-	Req * reqp; //a pointer to the Request Packet
-	Msg smsg, rmsg; //send_message receive_message
-	struct _stat stat_buf;
-	int result;
+	char clientName[64];
+	char fileName[64];
+	char transferDirection[8];
+	char userName[64];
+	string temp;
 
-	if (msg_recv(cs, &rmsg) != rmsg.length)
-		err_sys("Receive Req error,exit");
+	//Fill in szbuffer from accepted request.
+	if ((ibytesrecv = recv(s1, szbuffer, 128, 0)) == SOCKET_ERROR)
+		throw "Receive error in server program\n";
 
-	//cast it to the request packet structure		
-	reqp = (Req *)rmsg.buffer;
-	printf("Receive a request from client:%s\n", reqp->hostname);
-	//contruct the response and send it out
-	smsg.type = RESP;
-	smsg.length = sizeof(Resp);
+	//Interpret request from client
+	string tempBuffer(szbuffer);
+	size_t pos = tempBuffer.find(",");
+	strcpy(clientName, tempBuffer.substr(0, pos).c_str());
 
-	if ((result = _stat(reqp->filename, &stat_buf)) != 0)
-		sprintf(resp.response, "No such a file");
-	else {
-		memset(resp.response, 0, sizeof(resp));
-		if (rmsg.type == REQ_TIME)
-			sprintf(resp.response, "%s", ctime(&stat_buf.st_ctime));
-		else if (rmsg.type == REQ_SIZE)
-			sprintf(resp.response, "File size:%ld", stat_buf.st_size);
+	tempBuffer = tempBuffer.substr(pos + 1);
+	pos = tempBuffer.find(",");
+	strcpy(fileName, tempBuffer.substr(0, pos).c_str());
+
+	tempBuffer = tempBuffer.substr(pos + 1);
+	pos = tempBuffer.find(",");
+	strcpy(transferDirection, tempBuffer.substr(0, pos).c_str());
+
+	tempBuffer = tempBuffer.substr(pos + 1);
+	pos = tempBuffer.find("\\");
+	strcpy(userName, tempBuffer.substr(0, pos).c_str());
+
+	// Length of buffer
+	const int BUFFER_LENGTH = 512;
+
+	// GET - Send file to client
+	if (strcmp(transferDirection, "get") == 0) {
+
+		cout << "User \"" << userName << "\" requested file " << fileName << " to be sent." << endl
+			<< "Sending file to " << clientName << endl << endl;
+
+		FILE * file = fopen(fileName, "r");
+		if (file == NULL) {
+			cout << "File not found" << endl << endl;
+		}
+		char buffer[BUFFER_LENGTH];
+
+		int fileBlockSize = 0;
+
+		while ((fileBlockSize = fread(buffer, sizeof(char), BUFFER_LENGTH, file)) > 0)
+		{
+			if (send(s1, buffer, fileBlockSize, 0) < 0)
+				cout << "Failed to send file" << endl << endl;
+		}
+
+		cout << "File sent to client" << endl << endl;
+	}
+	// PUT - Receive file from client
+	else if (strcmp(transferDirection, "put") == 0) {
+
+		cout << "User \"" << userName << "\" requested file " << fileName << " to be received." << endl
+			<< "Receiving file from " << clientName << endl << endl;
+
+		char* fname = fileName;
+		char buffer[BUFFER_LENGTH];
+		FILE *file = fopen(fileName, "a");
+
+		if (file == NULL)
+			cout << "File " << fname << "cannot be opened" << endl << endl;
+		else
+		{
+			int fileBlockSize = 0;
+			while ((fileBlockSize = recv(s1, buffer, BUFFER_LENGTH, 0)) > 0)
+			{
+				int writeSize = fwrite(buffer, sizeof(char), fileBlockSize, file);
+				if (writeSize < fileBlockSize)
+				{
+					cout << "Failed to retrieve file from client" << endl << endl;
+				}
+				if (fileBlockSize == 0 || fileBlockSize != BUFFER_LENGTH)
+				{
+					break;
+				}
+			}
+			if (fileBlockSize < 0)
+			{
+				cout << "Error retrieving file from client" << endl << endl;
+			}
+			else
+				cout << "File was received" << endl << endl;
+
+			fclose(file);
+		}
+	}
+	// LIST - List files available for transfer
+	else if (strcmp(transferDirection, "list") == 0) {
+
+		cout << "User \"" << userName << "\" requested directory listing." << endl
+			<< "Sending directory listing to " << clientName << endl << endl;
+
+		system("dir /b >> list.txt");
+
+		ifstream file("list.txt");
+		string line;
+		string directoryString;
+
+		if (!file.eof()) {
+			getline(file, line);
+			directoryString = line;
+
+			while (!file.eof()) {
+				getline(file, line);
+				directoryString = directoryString + "," + line;
+			}
+		}
+
+		sprintf_s(szbuffer, directoryString.c_str());
+
+		ibytessent = 0;
+		ibufferlen = strlen(szbuffer);
+		ibytessent = send(s1, szbuffer, ibufferlen, 0);
+		if (ibytessent == SOCKET_ERROR)
+			throw "Failed to send directory listing\n";
+
+		file.close();
+
+		system("del list.txt");
 	}
 
-	memcpy(smsg.buffer, &resp, sizeof(resp));
+	//close Client socket
+	closesocket(s1);
 
-	if (msg_send(cs, &smsg) != smsg.length)
-		err_sys("send Respose failed,exit");
-	printf("Response for %s has been sent out \n\n\n", reqp->hostname);
-
-	closesocket(cs);
+	cout << "waiting to be contacted for transferring files..." << endl << endl;
 }
 
 
