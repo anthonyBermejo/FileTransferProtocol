@@ -16,8 +16,8 @@
 #include <windows.h>
 #include <fstream>
 #include <sstream>
-
-
+#include "Thread.h"
+#include "Server.h"
 
 using namespace std;
 
@@ -161,6 +161,9 @@ int main(void){
 			if ((s1 = accept(s, &ca.generic, &calen)) == INVALID_SOCKET)
 				throw "Couldn't accept connection\n";
 
+			TcpThread * t = new TcpThread(s1);
+			t->start();
+
 			//Fill in szbuffer from accepted request.
 			if ((ibytesrecv = recv(s1, szbuffer, 128, 0)) == SOCKET_ERROR)
 				throw "Receive error in server program\n";
@@ -296,6 +299,43 @@ int main(void){
 	/* When done uninstall winsock.dll (WSACleanup()) and exit */
 	WSACleanup();
 	return 0;
+}
+
+void TcpThread::run() //cs: Server socket
+{
+	Resp resp;//response
+	Req * reqp; //a pointer to the Request Packet
+	Msg smsg, rmsg; //send_message receive_message
+	struct _stat stat_buf;
+	int result;
+
+	if (msg_recv(cs, &rmsg) != rmsg.length)
+		err_sys("Receive Req error,exit");
+
+	//cast it to the request packet structure		
+	reqp = (Req *)rmsg.buffer;
+	printf("Receive a request from client:%s\n", reqp->hostname);
+	//contruct the response and send it out
+	smsg.type = RESP;
+	smsg.length = sizeof(Resp);
+
+	if ((result = _stat(reqp->filename, &stat_buf)) != 0)
+		sprintf(resp.response, "No such a file");
+	else {
+		memset(resp.response, 0, sizeof(resp));
+		if (rmsg.type == REQ_TIME)
+			sprintf(resp.response, "%s", ctime(&stat_buf.st_ctime));
+		else if (rmsg.type == REQ_SIZE)
+			sprintf(resp.response, "File size:%ld", stat_buf.st_size);
+	}
+
+	memcpy(smsg.buffer, &resp, sizeof(resp));
+
+	if (msg_send(cs, &smsg) != smsg.length)
+		err_sys("send Respose failed,exit");
+	printf("Response for %s has been sent out \n\n\n", reqp->hostname);
+
+	closesocket(cs);
 }
 
 
