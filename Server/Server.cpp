@@ -163,6 +163,7 @@ int main(void){
 			if ((ibytesrecv = recv(s1, szbuffer, 128, 0)) == SOCKET_ERROR)
 				throw "Receive error in server program\n";
 
+			//Interpret request from client
 			string tempBuffer(szbuffer);
 			size_t pos = tempBuffer.find(",");
 			strcpy(clientName, tempBuffer.substr(0, pos).c_str());
@@ -179,18 +180,18 @@ int main(void){
 			pos = tempBuffer.find("\\");
 			strcpy(userName, tempBuffer.substr(0,pos).c_str());
 
-
-			//Print receipt of successful message. 
-			cout << "User \"" << userName << "\" requested file " << fileName << " to be sent." << endl
-				<< "Sending file to " << clientName << endl;
-
+			// Length of buffer
 			const int BUFFER_LENGTH = 512;
 
 			// GET - Send file to client
 			if (strcmp(transferDirection, "get") == 0) {
+
+				cout << "User \"" << userName << "\" requested file " << fileName << " to be sent." << endl
+					<< "Sending file to " << clientName << endl << endl;
+
 				FILE * file = fopen(fileName, "r");
 				if (file == NULL) {
-					cout << "File not found" << endl;
+					cout << "File not found" << endl << endl;
 				}
 				char buffer[BUFFER_LENGTH];
 
@@ -199,29 +200,32 @@ int main(void){
 				while ((fileBlockSize = fread(buffer, sizeof(char), BUFFER_LENGTH, file)) > 0)
 				{
 					if (send(s1, buffer, fileBlockSize, 0) < 0)
-						cout << "Failed to send file" << endl;
+						cout << "Failed to send file" << endl << endl;
 				}
 
-				cout << "File sent to client" << endl;
+				cout << "File sent to client" << endl << endl;
 			}
 			// PUT - Receive file from client
 			else if (strcmp(transferDirection, "put") == 0) {
+
+				cout << "User \"" << userName << "\" requested file " << fileName << " to be received." << endl
+					<< "Receiving file from " << clientName << endl << endl;
 
 				char* fname = fileName;
 				char buffer[BUFFER_LENGTH];
 				FILE *file = fopen("textf.txt", "a");
 
 				if (file == NULL)
-					cout << "File " << fname << "cannot be opened" << endl;
+					cout << "File " << fname << "cannot be opened" << endl << endl;
 				else
 				{
 					int fileBlockSize = 0;
 					while ((fileBlockSize = recv(s1, buffer, BUFFER_LENGTH, 0)) > 0)
 					{
-						int write_sz = fwrite(buffer, sizeof(char), fileBlockSize, file);
-						if (write_sz < fileBlockSize)
+						int writeSize = fwrite(buffer, sizeof(char), fileBlockSize, file);
+						if (writeSize < fileBlockSize)
 						{
-							cout << "Failed to retrieve file from client" << endl;
+							cout << "Failed to retrieve file from client" << endl << endl;
 						}
 						if (fileBlockSize == 0 || fileBlockSize != BUFFER_LENGTH)
 						{
@@ -230,19 +234,20 @@ int main(void){
 					}
 					if (fileBlockSize < 0)
 					{
-						cout << "Error retrieving file from client" << endl;
+						cout << "Error retrieving file from client" << endl << endl;
 					}
 					else
-						cout << "File was received" << endl;
+						cout << "File was received" << endl << endl;
+
 					fclose(file);
 				}
 			}
 			// LIST - List files available for transfer
 			else if (strcmp(transferDirection, "list") == 0) {
-				system("dir");
+				system("dir /b >> dir.txt");
 			}
 			else {
-				cout << "Invalid transfer direction" << endl;
+				cout << "Invalid transfer direction" << endl << endl;
 			}
 
 		}//wait loop
