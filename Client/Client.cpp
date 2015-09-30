@@ -163,34 +163,63 @@ int main(void){
 			throw "Send failed\n";
 
 		const int BUFFER_LENGTH = 512;
-		char* fname = fileName;
-		char buffer[BUFFER_LENGTH];
-		FILE *file = fopen("textf.txt", "a");
 
-		if (file == NULL)
-			cout << "File " << fname << "cannot be opened" << endl;
-		else
-		{
-			int fileBlockSize = 0;
-			while ((fileBlockSize = recv(s, buffer, BUFFER_LENGTH, 0)) > 0)
+		// GET - Client requests file from server
+		if (strcmp(transferDirection, "get") == 0) {
+			char* fname = fileName;
+			char buffer[BUFFER_LENGTH];
+			FILE *file = fopen("textf.txt", "a");
+
+			if (file == NULL)
+				cout << "File " << fname << "cannot be opened" << endl;
+			else
 			{
-				int write_sz = fwrite(buffer, sizeof(char), fileBlockSize, file);
-				if (write_sz < fileBlockSize)
+				int fileBlockSize = 0;
+				while ((fileBlockSize = recv(s, buffer, BUFFER_LENGTH, 0)) > 0)
 				{
-					cout << "Failed to retrieve file from server" << endl;
+					int write_sz = fwrite(buffer, sizeof(char), fileBlockSize, file);
+					if (write_sz < fileBlockSize)
+					{
+						cout << "Failed to retrieve file from server" << endl;
+					}
+					if (fileBlockSize == 0 || fileBlockSize != BUFFER_LENGTH)
+					{
+						break;
+					}
 				}
-				if (fileBlockSize == 0 || fileBlockSize != BUFFER_LENGTH)
+				if (fileBlockSize < 0)
 				{
-					break;
+					cout << "Error retrieving file from server" << endl;
 				}
+				else
+					cout << "File was received" << endl;
+				fclose(file);
 			}
-			if (fileBlockSize < 0)
-			{
-				cout << "Error retrieving file from sever" << endl;
-			}
-			cout << "File was received" << endl;
-			fclose(file);
 		}
+		// PUT - Client sends file to server
+		else if (strcmp(transferDirection, "put") == 0) {
+			FILE * file = fopen(fileName, "r");
+			if (file == NULL) {
+				cout << "File not found" << endl;
+			}
+			char buffer[BUFFER_LENGTH];
+
+			int fileBlockSize = 0;
+
+			while ((fileBlockSize = fread(buffer, sizeof(char), BUFFER_LENGTH, file)) > 0)
+			{
+				if (send(s, buffer, fileBlockSize, 0) < 0)
+					cout << "Failed to send file" << endl;
+			}
+
+			cout << "File sent to client" << endl;
+		}
+		// LIST - List files available for transfer
+		else if (strcmp(transferDirection, "list") == 0) {
+			system("dir");
+		}
+		else
+			cout << "Invalid transfer direction" << endl;
 	}
 
 	//Display any needed error response.

@@ -209,14 +209,14 @@ int main(void){
 
 				char* fname = fileName;
 				char buffer[BUFFER_LENGTH];
-				FILE *file = fopen(fname, "a");
+				FILE *file = fopen("textf.txt", "a");
 
 				if (file == NULL)
 					cout << "File " << fname << "cannot be opened" << endl;
 				else
 				{
 					int fileBlockSize = 0;
-					while ((fileBlockSize = recv(s, buffer, BUFFER_LENGTH, 0)) > 0)
+					while ((fileBlockSize = recv(s1, buffer, BUFFER_LENGTH, 0)) > 0)
 					{
 						int write_sz = fwrite(buffer, sizeof(char), fileBlockSize, file);
 						if (write_sz < fileBlockSize)
@@ -232,16 +232,17 @@ int main(void){
 					{
 						cout << "Error retrieving file from client" << endl;
 					}
-					cout << "File was received" << endl;
+					else
+						cout << "File was received" << endl;
 					fclose(file);
 				}
 			}
 			// LIST - List files available for transfer
 			else if (strcmp(transferDirection, "list") == 0) {
-				system("dir /b >> list.txt");
+				system("dir");
 			}
 			else {
-				cout << "Invalid transfer direction";
+				cout << "Invalid transfer direction" << endl;
 			}
 
 		}//wait loop
