@@ -271,7 +271,9 @@ int main(void){
 				if (ibytessent == SOCKET_ERROR)
 					throw "Failed to send directory listing\n";
 
-				//system("rm list.txt");
+				file.close();
+
+				system("del list.txt");
 			}
 			else {
 				cout << "Invalid transfer direction" << endl << endl;
