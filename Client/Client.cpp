@@ -159,7 +159,7 @@ int main(void){
 
 			GetUserNameA(userName, &userNameSize);
 
-			sprintf_s(szbuffer, strcat(strcat(strcat(strcat(strcat(strcat(strcat(server, ","), fileName), ","), transferDirection), ","), userName), ""));
+			sprintf_s(szbuffer, strcat(strcat(strcat(strcat(strcat(strcat(strcat(server, ","), fileName), ","), transferDirection), ","), userName), " "));
 
 			ibytessent = 0;
 			ibufferlen = strlen(szbuffer);
@@ -221,7 +221,21 @@ int main(void){
 			}
 			// LIST - List files available for transfer
 			else if (strcmp(transferDirection, "list") == 0) {
-				
+
+
+				//Fill in szbuffer from accepted request.
+				if ((ibytesrecv = recv(s, szbuffer, 128, 0)) == SOCKET_ERROR)
+					throw "Receive error in server program\n";
+
+				//Interpret request from client
+				string tempBuffer(szbuffer);
+				size_t pos;
+
+				while (pos != -1) {
+					pos = tempBuffer.find(",");
+					cout << tempBuffer.substr(0, pos).c_str() << endl;
+					tempBuffer = tempBuffer.substr(pos + 1);
+				}
 			}
 			else
 				cout << "Invalid transfer direction" << endl << endl;

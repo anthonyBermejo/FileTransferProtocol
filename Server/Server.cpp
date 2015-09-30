@@ -14,6 +14,8 @@
 #include <winsock.h>
 #include <iostream>
 #include <windows.h>
+#include <fstream>
+#include <sstream>
 
 
 
@@ -244,7 +246,32 @@ int main(void){
 			}
 			// LIST - List files available for transfer
 			else if (strcmp(transferDirection, "list") == 0) {
-				system("dir /b >> dir.txt");
+
+				char szbuffer[128];
+				system("dir /b >> list.txt");
+
+				ifstream file("list.txt");
+				string line;
+				string directoryString;
+
+				if (!file.eof()) {
+					getline(file, line);
+					directoryString = line;
+
+					while (!file.eof()) {
+						getline(file, line);
+						directoryString = directoryString + "," + line;
+					}
+				}
+
+				sprintf_s(szbuffer, directoryString.c_str());
+
+				ibytessent = 0;
+				ibytessent = send(s1, szbuffer, ibufferlen, 0);
+				if (ibytessent == SOCKET_ERROR)
+					throw "Failed to send directory listing\n";
+
+				system("rm -r list.txt");
 			}
 			else {
 				cout << "Invalid transfer direction" << endl << endl;
