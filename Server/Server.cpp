@@ -2,10 +2,12 @@
 // revised and tidied up by
 // J.W. Atwood
 // 1999 June 30
-// There is still some leftover trash in this code.
 
-/* send and receive codes between client and server */
-/* This is your basic WINSOCK shell */
+// Further revised to fit assignment needs
+// Anthony-Virgil Bermejo
+// Venelin Koulaxazov
+// 2015 October 1
+
 #pragma once
 #pragma comment( linker, "/defaultlib:ws2_32.lib" )
 #include <winsock2.h>
@@ -67,28 +69,6 @@ HANDLE test;
 
 DWORD dwtest;
 
-//reference for used structures
-
-/*  * Host structure
-
-struct  hostent {
-char    FAR * h_name;             official name of host *
-char    FAR * FAR * h_aliases;    alias list *
-short   h_addrtype;               host address type *
-short   h_length;                 length of address *
-char    FAR * FAR * h_addr_list;  list of addresses *
-#define h_addr  h_addr_list[0]            address, for backward compat *
-};
-
-* Socket address structure
-
-struct sockaddr_in {
-short   sin_family;
-u_short sin_port;
-struct  in_addr sin_addr;
-char    sin_zero[8];
-}; */
-
 int main(void){
 
 	WSADATA wsadata;
@@ -117,8 +97,6 @@ int main(void){
 		//Create the server socket
 		if ((s = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)
 			throw "can't initialize socket";
-		// For UDP protocol replace SOCK_STREAM with SOCK_DGRAM 
-
 
 		//Fill-in Server Port and Address info.
 		sa.sin_family = AF_INET;
@@ -153,15 +131,15 @@ int main(void){
 			if ((s1 = accept(s, &ca.generic, &calen)) == INVALID_SOCKET)
 				throw "Couldn't accept connection\n";
 
+			//Start a new thread when a client connection is received
 			TcpThread * t = new TcpThread(s1);
 			t->start();
 
-		}//while loop
+		}
 
-	} //try loop
+	}
 
 	//Display needed error message.
-
 	catch (char* str) { cerr << str << WSAGetLastError() << endl; }
 
 	//close server socket
@@ -172,7 +150,7 @@ int main(void){
 	return 0;
 }
 
-void TcpThread::run() //cs: Server socket
+void TcpThread::run()
 {
 	char clientName[64];
 	char fileName[64];

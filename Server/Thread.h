@@ -1,4 +1,3 @@
-/*From COEN320:Real-Time System and COEN421: Embedded System Design*/
 #ifndef THREAD_HPP
 #define THREAD_HPP
 
